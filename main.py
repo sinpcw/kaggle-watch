@@ -48,7 +48,7 @@ def watch(api, data) -> Dict:
     for desc in submissions:
         submitID = str(desc.ref)
         if submitID not in data:
-            tm = datetime.datetime.strptime(str(desc.date) + ' UTC', "%Y-%m-%d %H:%M:%S %Z")
+            tm = datetime.datetime.strptime(str(desc.date) + '+0000', "%Y-%m-%d %H:%M:%S%z")
             data[submitID] = {
                 'submitID' : submitID,
                 'publicLB' : desc.publicScore if desc.publicScore is not None and desc.publicScore != 'None' else None,
@@ -100,8 +100,8 @@ def setup() -> Dict:
             submitID = csv.iat[i, 0]
             publicLB = float(csv.iat[i, 1])
             run_stat = csv.iat[i, 2]
-            set_time = datetime.datetime.strptime(str(csv.iat[i, 3]) + '+0000', "%Y/%m/%d %H:%M:%S%z") if type(csv.iat[i, 3]) == str else None
-            end_time = datetime.datetime.strptime(str(csv.iat[i, 4]) + '+0000', "%Y/%m/%d %H:%M:%S%z") if type(csv.iat[i, 4]) == str else None
+            set_time = datetime.datetime.strptime(str(csv.iat[i, 3]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 3]) == str else None
+            end_time = datetime.datetime.strptime(str(csv.iat[i, 4]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 4]) == str else None
             describe = csv.iat[i, 5]
             dat[submitID] = {
                 'submitID' : submitID,
