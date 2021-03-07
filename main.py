@@ -60,10 +60,10 @@ def watch(api, data) -> Dict:
         if desc.status != 'pending' and data[submitID]['run_stat'] == 'pending':
             data[submitID]['publicLB'] = desc.publicScore
             data[submitID]['end_time'] = datetime.datetime.now(datetime.timezone.utc)
-            data[submitID]['run_stat'] = 'complete'
+            data[submitID]['run_stat'] = desc.status
             data[submitID]['describe'] = desc.description
             # 送信メッセージの作成:
-            result['post'].append(buildMessage(data[submitID], '成功'))
+            result['post'].append(buildMessage(data[submitID], '成功' if desc.publicScore != None else '失敗'))
     result['data'] = data
     return result
 
