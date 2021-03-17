@@ -13,13 +13,11 @@ context = ssl.create_default_context()
 context.check_hostname = False
 context.verify_mode = ssl.CERT_NONE
 
-# Discordなどのメッセージ送信先:
-# 例: URL = 'https://discord.com/api/webhooks/XXXXXXXXXXXX'
-URL = 'https://discord.com/api/webhooks/'
+# Discordメッセージ送信先:
+URL = 'https://discord.com/api/webhooks/<input webhook_url>'
 
 # 監視対象コンペティション:
-# 例: COMPETITION = 'ranzcr-clip-catheter-line-classification'
-COMPETITION = ''
+COMPETITION = '<competition name>'
 
 # デバッグ処理用
 DEBUG = False
@@ -114,7 +112,8 @@ def setup() -> Dict:
     return dat
 
 def write(data) -> None:
-    with open(COMPETITION + '_logger.csv', mode='w', encoding='utf-8') as f:
+    os.makedirs('report', exist_ok=True)
+    with open('report/' + COMPETITION + '_logger.csv', mode='w', encoding='utf-8') as f:
         f.write('submitID,publicLB,status,set_time,end_time,description\n')
         if data is not None:
             for v in data.values():
@@ -146,7 +145,7 @@ if __name__ == '__main__':
             for m in msg:
                 send_fn(m)
             # 実行状況の表示:
-            print('[{}] message={}'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'), len(msg)))
+            # print('[{}] message={}'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'), len(msg)))
         # 無視フラグ: 起動していない際の処理は時間が正しく取れないため送信しないための措置
         nop = False
         # 終了監視:
