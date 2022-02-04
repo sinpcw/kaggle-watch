@@ -1,10 +1,10 @@
 import os
+import sys
 import ssl
 import json
 import time
 import pandas as pd
 import datetime
-from pandas.core.dtypes.missing import isnull
 import requests
 from typing import Dict
 from kaggle.api.kaggle_api_extended import KaggleApi
@@ -18,6 +18,10 @@ URL = 'https://discord.com/api/webhooks/<input webhook_url>'
 
 # 監視対象コンペティション:
 COMPETITION = '<competition name>'
+
+# メトリック
+# 大きい方がよければ True
+MAXIMIZE = True
 
 # デバッグ処理用
 DEBUG = False
@@ -60,12 +64,21 @@ def watch(api, data) -> Dict:
             data[submitID]['end_time'] = datetime.datetime.now(datetime.timezone.utc)
             data[submitID]['run_stat'] = desc.status
             data[submitID]['describe'] = desc.description
+            # LB更新したか
+            update = False
+            scores = (data['BestLB'], data[submitID]['publicLB'])
+            if MAXIMIZE and data[submitID]['publicLB'] > data['BestLB']:
+                update = True
+                data['BestLB'] = data[submitID]['publicLB']
+            if not MAXIMIZE and data[submitID]['publicLB'] < data['BestLB']:
+                update = True
+                data['BestLB'] = data[submitID]['publicLB']
             # 送信メッセージの作成:
-            result['post'].append(buildMessage(data[submitID], '成功' if desc.publicScore != None else '失敗'))
+            result['post'].append(buildMessage(data[submitID], '成功' if desc.publicScore != None else '失敗', update, scores))
     result['data'] = data
     return result
 
-def buildMessage(info: Dict, status: str='完了') -> str:
+def buildMessage(info: Dict, status: str, update: bool, scores: tuple(float, float)) -> str:
     submitID = info['submitID']
     publicLB = info['publicLB']
     describe = info['describe']
@@ -88,10 +101,14 @@ def buildMessage(info: Dict, status: str='完了') -> str:
     if describe is not None:
         message += 'comments: {}\n'.format(describe)
     message += '```\n'
+    if update:
+        message += 'リーダーボードを更新しました ({}⇒{})\n'.format(scores[0], scores[1])
     return message
 
 def setup() -> Dict:
-    dat = { }
+    dat = {
+        'BestLB' : sys.float_info.max if MAXIMIZE else -sys.float_info.max
+    }
     if os.path.exists(COMPETITION + '_logger.csv'):
         csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf8')
         for i in range(len(csv)):
@@ -137,20 +154,26 @@ if __name__ == '__main__':
     send_fn = getSend()
     print('モニター開始: quitファイルを作成するとモニターを終了します')
     while not os.path.exists('quit'):
-        ret = watch(api, dat)
-        msg = ret['post']
-        dat = ret['data']
-        write(dat)
-        if not nop:
-            for m in msg:
-                send_fn(m)
-            # 実行状況の表示:
-            # print('[{}] message={}'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'), len(msg)))
-        # 無視フラグ: 起動していない際の処理は時間が正しく取れないため送信しないための措置
-        nop = False
-        # 終了監視:
-        for i in range(20):
-            if os.path.exists('quit'):
-                break
-            time.sleep(3)
+        try:
+            ret = watch(api, dat)
+            msg = ret['post']
+            dat = ret['data']
+            write(dat)
+            if not nop:
+                for m in msg:
+                    send_fn(m)
+                # 実行状況の表示:
+                # print('[{}] message={}'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'), len(msg)))
+            # 無視フラグ: 起動していない際の処理は時間が正しく取れないため送信しないための措置
+            nop = False
+            # 終了監視:
+            # 待機は 20 x 3sec で約60秒ごとに検査する
+            for i in range(20):
+                if os.path.exists('quit'):
+                    break
+                time.sleep(3)
+        except Exception as e:
+            print('[{}] (警告) 例外検知'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
+            print(e)
+            print('[{}] (警告) --------------------'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
     print('モニター終了')
