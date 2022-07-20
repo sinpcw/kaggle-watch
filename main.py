@@ -14,10 +14,10 @@ context.check_hostname = False
 context.verify_mode = ssl.CERT_NONE
 
 # Discordメッセージ送信先:
-URL = 'https://discord.com/api/webhooks/<input webhook_url>'
+URL = 'https://discord.com/api/webhooks/<webhook URL>'
 
-# 監視対象コンペティション:
-COMPETITION = '<competition name>'
+# 監視対象コンペティション: kaggle competitions download -c xxxx (xxxx部分を指定)
+COMPETITION = 'xxxx'
 
 # メトリック
 # 大きい方がよければ True
@@ -74,11 +74,11 @@ def watch(api, data) -> Dict:
                 update = True
                 data['BestLB'] = data[submitID]['publicLB']
             # 送信メッセージの作成:
-            result['post'].append(buildMessage(data[submitID], '成功' if desc.publicScore != None else '失敗', update, scores))
+            result['post'].append(buildMessage(data[submitID], '成功' if desc.publicScore != None and len(desc.publicScore) > 0 else '失敗', update, scores))
     result['data'] = data
     return result
 
-def buildMessage(info: Dict, status: str, update: bool, scores: tuple(float, float)) -> str:
+def buildMessage(info: Dict, status: str, update: bool, scores) -> str:
     submitID = info['submitID']
     publicLB = info['publicLB']
     describe = info['describe']
@@ -107,7 +107,7 @@ def buildMessage(info: Dict, status: str, update: bool, scores: tuple(float, flo
 
 def setup() -> Dict:
     dat = {
-        'BestLB' : sys.float_info.max if MAXIMIZE else -sys.float_info.max
+        'BestLB' : -sys.float_info.max if MAXIMIZE else sys.float_info.max
     }
     if os.path.exists(COMPETITION + '_logger.csv'):
         csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf8')
@@ -133,7 +133,9 @@ def write(data) -> None:
     with open('report/' + COMPETITION + '_logger.csv', mode='w', encoding='utf-8') as f:
         f.write('submitID,publicLB,status,set_time,end_time,description\n')
         if data is not None:
-            for v in data.values():
+            for k, v in data.items():
+                if k == 'BestLB':
+                    continue
                 submitID = v['submitID']
                 publicLB = v['publicLB'] if v['publicLB'] is not None else ''
                 run_stat = v['run_stat']
@@ -153,8 +155,11 @@ if __name__ == '__main__':
     api.authenticate()
     send_fn = getSend()
     print('モニター開始: quitファイルを作成するとモニターを終了します')
+    last_auth = time.time()
     while not os.path.exists('quit'):
         try:
+            if time.time() - last_auth >= 3600:
+                api.authenticate()
             ret = watch(api, dat)
             msg = ret['post']
             dat = ret['data']
@@ -172,6 +177,8 @@ if __name__ == '__main__':
                 if os.path.exists('quit'):
                     break
                 time.sleep(3)
+        except KeyboardInterrupt:
+            break
         except Exception as e:
             print('[{}] (警告) 例外検知'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
             print(e)
