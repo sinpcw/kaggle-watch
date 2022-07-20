@@ -67,12 +67,14 @@ def watch(api, data) -> Dict:
             # LB更新したか
             update = False
             scores = (data['BestLB'], data[submitID]['publicLB'])
-            if MAXIMIZE and data[submitID]['publicLB'] > data['BestLB']:
+            pvalue = float(data['BestLB'])
+            cvalue = float(data[submitID]['publicLB'])
+            if MAXIMIZE and cvalue > pvalue:
                 update = True
-                data['BestLB'] = data[submitID]['publicLB']
-            if not MAXIMIZE and data[submitID]['publicLB'] < data['BestLB']:
+                data['BestLB'] = cvalue
+            if not MAXIMIZE and cvalue < pvalue:
                 update = True
-                data['BestLB'] = data[submitID]['publicLB']
+                data['BestLB'] = cvalue
             # 送信メッセージの作成:
             result['post'].append(buildMessage(data[submitID], '成功' if desc.publicScore != None and len(desc.publicScore) > 0 else '失敗', update, scores))
     result['data'] = data
