@@ -66,17 +66,26 @@ def watch(api, data) -> Dict:
             data[submitID]['describe'] = desc.description
             # LB更新したか
             update = False
-            scores = (data['BestLB'], data[submitID]['publicLB'])
-            pvalue = float(data['BestLB'])
-            cvalue = float(data[submitID]['publicLB'])
-            if MAXIMIZE and cvalue > pvalue:
-                update = True
-                data['BestLB'] = cvalue
-            if not MAXIMIZE and cvalue < pvalue:
-                update = True
-                data['BestLB'] = cvalue
+            errmsg = False
+            if desc.publicScore is None or len(data[submitID]['publicLB']) == 0:
+                # エラー(ex. Submission Scoring Error)
+                errmsg = True
+                scores = (data['BestLB'], data[submitID]['publicLB'])
+            else:
+                # 成功
+                if data['BestLB'] is not None:
+                    data['BestLB'] = data[submitID]['publicLB']
+                scores = (data['BestLB'], data[submitID]['publicLB'])
+                pvalue = float(data['BestLB'])
+                cvalue = float(data[submitID]['publicLB'])
+                if MAXIMIZE and cvalue > pvalue:
+                    update = True
+                    data['BestLB'] = data[submitID]['publicLB']
+                if not MAXIMIZE and cvalue < pvalue:
+                    update = True
+                    data['BestLB'] = data[submitID]['publicLB']
             # 送信メッセージの作成:
-            result['post'].append(buildMessage(data[submitID], '成功' if desc.publicScore != None and len(desc.publicScore) > 0 else '失敗', update, scores))
+            result['post'].append(buildMessage(data[submitID], '失敗' if errmsg else '成功', update, scores))
     result['data'] = data
     return result
 
@@ -92,15 +101,15 @@ def buildMessage(info: Dict, status: str, update: bool, scores) -> str:
     message  = 'サブミットが{}しました:\n'.format(status)
     message += '```\n'
     message += 'submitID: {}\n'.format(submitID)
-    if execTime is not None:
+    if execTime is not None and len(execTime) > 0:
         message += 'execTime: {}min\n'.format(execTime)
     else:
         message += 'execTime: N/A\n'
-    if publicLB is not None:
+    if publicLB is not None and len(publicLB) > 0:
         message += 'publicLB: {}\n'.format(publicLB)
     else:
         message += 'publicLB: N/A\n'
-    if describe is not None:
+    if describe is not None and len(describe) > 0:
         message += 'comments: {}\n'.format(describe)
     message += '```\n'
     if update:
@@ -109,7 +118,7 @@ def buildMessage(info: Dict, status: str, update: bool, scores) -> str:
 
 def setup() -> Dict:
     dat = {
-        'BestLB' : -sys.float_info.max if MAXIMIZE else sys.float_info.max
+        'BestLB' : None,
     }
     if os.path.exists(COMPETITION + '_logger.csv'):
         csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf8')
