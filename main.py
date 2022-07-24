@@ -133,7 +133,7 @@ def setup() -> Dict:
         csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf8')
         for i in range(len(csv)):
             submitID = csv.iat[i, 0]
-            publicLB = float(csv.iat[i, 1])
+            publicLB = to_float(csv.iat[i, 1])
             run_stat = csv.iat[i, 2]
             set_time = datetime.datetime.strptime(str(csv.iat[i, 3]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 3]) == str else None
             end_time = datetime.datetime.strptime(str(csv.iat[i, 4]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 4]) == str else None
@@ -180,6 +180,7 @@ if __name__ == '__main__':
         try:
             if time.time() - last_auth >= 3600:
                 api.authenticate()
+                print('[{}] (警告) 例外検知'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
             ret = watch(api, dat)
             msg = ret['post']
             dat = ret['data']
