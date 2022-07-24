@@ -38,6 +38,15 @@ def sender(message: str) -> None:
     })
     _ = requests.post(URL, data=req_data, headers=req_head)
 
+def to_float(value) -> float:
+    if value is None:
+        return 0
+    if type(value) == float and np.isnan(value):
+        return 0
+    if type(value) == str and len(value) == 0:
+        return 0
+    return float(value)
+
 def watch(api, data) -> Dict:
     """
     コンペティションリーダーボードを監視する処理
@@ -76,8 +85,8 @@ def watch(api, data) -> Dict:
                 if data['BestLB'] is not None:
                     data['BestLB'] = data[submitID]['publicLB']
                 scores = (data['BestLB'], data[submitID]['publicLB'])
-                pvalue = float(data['BestLB'])
-                cvalue = float(data[submitID]['publicLB'])
+                pvalue = to_float(data['BestLB'])
+                cvalue = to_float(data[submitID]['publicLB'])
                 if MAXIMIZE and cvalue > pvalue:
                     update = True
                     data['BestLB'] = data[submitID]['publicLB']
