@@ -3,6 +3,8 @@ import sys
 import ssl
 import json
 import time
+import math
+import numpy as np
 import pandas as pd
 import datetime
 import requests
@@ -134,20 +136,36 @@ def buildMessage(info: Dict, status: str, update: bool, scores) -> str:
         message += 'リーダーボードを更新しました ({}⇒{})\n'.format(scores[0], scores[1])
     return message
 
+def decode(text):
+    if len(text) > 0:
+        text = text.replace('<comma>', ',')
+    return text
+
+def encode(text):
+    if len(text) > 0:
+        text = text.replace(',', '<comma>')
+    return text
+
 def setup() -> Dict:
     dat = {
         'BestLB' : None,
     }
-    if os.path.exists(COMPETITION + '_logger.csv'):
-        csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf-8')
+    if os.path.exists('report/' + COMPETITION + '_logger.csv'):
+        csv = pd.read_csv('report/' + COMPETITION + '_logger.csv', dtype=str, encoding='utf-8')
         val = None
         for i in range(len(csv)):
             submitID = csv.iat[i, 0]
-            publicLB = '' if np.isnan(csv.iat[i, 1]) else str(csv.iat[i, 1])
+            if type(csv.iat[i, 1]) == str and len(csv.iat[i, 1]) == 0:
+                publicLB = ''
+            elif math.isnan(float(csv.iat[i, 1])):
+                publicLB = ''
+            else:
+                publicLB = str(csv.iat[i, 1])
             run_stat = csv.iat[i, 2]
-            set_time = datetime.datetime.strptime(str(csv.iat[i, 3]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 3]) == str else None
-            end_time = datetime.datetime.strptime(str(csv.iat[i, 4]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 4]) == str else None
+            set_time = datetime.datetime.strptime(str(csv.iat[i, 3]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 3]) == str and len(csv.iat[i, 3]) > 0 else None
+            end_time = datetime.datetime.strptime(str(csv.iat[i, 4]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 4]) == str and len(csv.iat[i, 4]) > 0 else None
             describe = csv.iat[i, 5]
+            describe = decode(describe)
             dat[submitID] = {
                 'submitID' : submitID,
                 'publicLB' : publicLB,
@@ -178,10 +196,17 @@ def write(data) -> None:
                 set_time = v['set_time'].strftime('%Y/%m/%d %H:%M:%S') if v['set_time'] is not None else ''
                 end_time = v['end_time'].strftime('%Y/%m/%d %H:%M:%S') if v['end_time'] is not None else ''
                 describe = v['describe'] if v['describe'] is not None else ''
+                describe = encode(describe)
                 f.write('{},{},{},{},{},{}\n'.format(submitID, publicLB, run_stat, set_time, end_time, describe))
 
 def getSend():
     return sender if not DEBUG else print
+
+def getBestLB(dat):
+    if dat['BestLB'] is not None:
+        return dat['BestLB']
+    else:
+        return 'N/A'
 
 # エントリポイント:
 if __name__ == '__main__':
@@ -190,7 +215,7 @@ if __name__ == '__main__':
     api = KaggleApi()
     api.authenticate()
     send_fn = getSend()
-    print('Public LB={}'.format(dat['BestLB'] if dat['BestLB'] is not None else 'N/A'))
+    print('Public LB={}'.format(getBestLB(dat)))
     print('モニター開始: quitファイルを作成するとモニターを終了します')
     last_auth = time.time()
     while not os.path.exists('quit'):
