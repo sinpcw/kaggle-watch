@@ -41,10 +41,12 @@ def sender(message: str) -> None:
 def to_float(value) -> float:
     if value is None:
         return 0
-    if type(value) == float and np.isnan(value):
-        return 0
-    if type(value) == str and len(value) == 0:
-        return 0
+    elif type(value) in set([ int, float ]):
+        if np.isnan(value):
+            return 0
+    elif type(value) == str:
+        if len(value) == 0:
+            return 0
     return float(value)
 
 def watch(api, data) -> Dict:
@@ -76,13 +78,17 @@ def watch(api, data) -> Dict:
             # LB更新したか
             update = False
             errmsg = False
-            if desc.publicScore is None or len(data[submitID]['publicLB']) == 0:
+            if data[submitID]['publicLB'] is None:
+                data[submitID]['publicLB'] = ''
+            if type(data[submitID]['publicLB']) in set([ int, float ]):
+                data[submitID]['publicLB'] = '' if np.isnan(data[submitID]['publicLB']) else '{:.3f}'.format(data[submitID]['publicLB'])
+            if len(data[submitID]['publicLB']) == 0:
                 # エラー(ex. Submission Scoring Error)
                 errmsg = True
                 scores = (data['BestLB'], data[submitID]['publicLB'])
             else:
                 # 成功
-                if data['BestLB'] is not None:
+                if data['BestLB'] is None:
                     data['BestLB'] = data[submitID]['publicLB']
                 scores = (data['BestLB'], data[submitID]['publicLB'])
                 pvalue = to_float(data['BestLB'])
@@ -110,15 +116,17 @@ def buildMessage(info: Dict, status: str, update: bool, scores) -> str:
     message  = 'サブミットが{}しました:\n'.format(status)
     message += '```\n'
     message += 'submitID: {}\n'.format(submitID)
-    if execTime is not None and len(execTime) > 0:
-        message += 'execTime: {}min\n'.format(execTime)
-    else:
-        message += 'execTime: N/A\n'
-    if publicLB is not None and len(publicLB) > 0:
-        message += 'publicLB: {}\n'.format(publicLB)
+    message += 'execTime: {}min\n'.format(execTime)
+    if publicLB is not None:
+        if type(publicLB) == str and len(publicLB) > 0:
+            message += 'publicLB: {}\n'.format(publicLB)
+        elif type(publicLB) == float:
+            message += 'publicLB: {:.3f}\n'.format(publicLB)
+        else:
+            pass
     else:
         message += 'publicLB: N/A\n'
-    if describe is not None and len(describe) > 0:
+    if describe is not None or (type(describe) == str and len(describe) > 0):
         message += 'comments: {}\n'.format(describe)
     message += '```\n'
     if update:
@@ -130,10 +138,10 @@ def setup() -> Dict:
         'BestLB' : None,
     }
     if os.path.exists(COMPETITION + '_logger.csv'):
-        csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf8')
+        csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf-8')
         for i in range(len(csv)):
             submitID = csv.iat[i, 0]
-            publicLB = to_float(csv.iat[i, 1])
+            publicLB = '' if np.isnan(csv.iat[i, 1]) else str(csv.iat[i, 1])
             run_stat = csv.iat[i, 2]
             set_time = datetime.datetime.strptime(str(csv.iat[i, 3]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 3]) == str else None
             end_time = datetime.datetime.strptime(str(csv.iat[i, 4]) + '+0000', '%Y/%m/%d %H:%M:%S%z') if type(csv.iat[i, 4]) == str else None
@@ -180,7 +188,8 @@ if __name__ == '__main__':
         try:
             if time.time() - last_auth >= 3600:
                 api.authenticate()
-                print('[{}] (警告) 例外検知'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
+                last_auth = time.time()
+                print('[{}] (情報) authenticate()'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
             ret = watch(api, dat)
             msg = ret['post']
             dat = ret['data']
@@ -203,5 +212,6 @@ if __name__ == '__main__':
         except Exception as e:
             print('[{}] (警告) 例外検知'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
             print(e)
+            traceback.print_exc()
             print('[{}] (警告) --------------------'.format(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')))
     print('モニター終了')
