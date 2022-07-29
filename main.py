@@ -6,6 +6,7 @@ import time
 import pandas as pd
 import datetime
 import requests
+import traceback
 from typing import Dict
 from kaggle.api.kaggle_api_extended import KaggleApi
 
@@ -139,6 +140,7 @@ def setup() -> Dict:
     }
     if os.path.exists(COMPETITION + '_logger.csv'):
         csv = pd.read_csv(COMPETITION + '_logger.csv', dtype=str, encoding='utf-8')
+        val = None
         for i in range(len(csv)):
             submitID = csv.iat[i, 0]
             publicLB = '' if np.isnan(csv.iat[i, 1]) else str(csv.iat[i, 1])
@@ -154,6 +156,12 @@ def setup() -> Dict:
                 'end_time' : end_time,
                 'run_stat' : run_stat
             }
+            if len(publicLB) > 0:
+                if val is None:
+                    val = float(publicLB)
+                else:
+                    val = max(val, float(publicLB)) if MAXIMIZE else min(val, float(publicLB))
+        dat['BestLB'] = val
     return dat
 
 def write(data) -> None:
@@ -182,6 +190,7 @@ if __name__ == '__main__':
     api = KaggleApi()
     api.authenticate()
     send_fn = getSend()
+    print('Public LB={}'.format(dat['BestLB'] if dat['BestLB'] is not None else 'N/A'))
     print('モニター開始: quitファイルを作成するとモニターを終了します')
     last_auth = time.time()
     while not os.path.exists('quit'):
