@@ -5,7 +5,7 @@ SlackやDiscordのWebhook機能を利用してLBや実行時間等を含めて�
 <img src="resource/example.png" width="600px" />  
 
 [コンペ](https://www.kaggle.com/competitions/uw-madison-gi-tract-image-segmentation)での活用例.  
-9時間(540分)の制限に対してあと程度処理が可能かなどの参考になった.  
+9時間(540分)の制限に対して, あと程度処理が可能かなどを検討する際に有用であった.  
 
 ## Discord の設定
 
@@ -13,5 +13,9 @@ SlackやDiscordのWebhook機能を利用してLBや実行時間等を含めて�
 
 1. 監視ログを送信したいDiscrodサーバー/チャンネルでWebhookを作成  
 1. Webhook作成時のURLを取得  
-1. config.jsonにURLおよびコンペIDを記載  
+1. 現状は main.py のコードを編集してWebhook送信先URLおよびコンペIDを編集  
 1. 実行  
+
+## ToDo
+現行コードではpythonファイルにリテラルで記述しているが,  
+将来的にはconfig.jsonにURLおよびコンペIDを記載する形式に変更を予定している.  
