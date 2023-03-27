@@ -137,11 +137,17 @@ def buildMessage(info: Dict, status: str, update: bool, scores) -> str:
     return message
 
 def decode(text):
+    if type(text) == float:
+        # floatの場合はNaNと思われるため空文字を返す
+        return ''
     if len(text) > 0:
         text = text.replace('<comma>', ',')
     return text
 
 def encode(text):
+    if type(text) == float:
+        # floatの場合はNaNと思われるため空文字を返す
+        return ''
     if len(text) > 0:
         text = text.replace(',', '<comma>')
     return text
