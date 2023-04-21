@@ -9,13 +9,26 @@ SlackやDiscordのWebhook機能を利用してLBや実行時間等を含めて�
 
 ## Discord の設定
 
-事前にkaggle APIを実行可能にしておくこと.
+<font color="#ff0000">**注意**</font>  
+事前にkaggle APIを実行可能および認証情報を取得していることが必要になる.  
+  
+### 1. 監視ログを送信したいDiscrodサーバー/チャンネルでWebhookを作成  
+<img src="resource/op1.png" width="600px" />  
+  
+### 2. Webhook作成時のURLを取得  
+<img src="resource/op2.png" width="600px" />  
 
-1. 監視ログを送信したいDiscrodサーバー/チャンネルでWebhookを作成  
-1. Webhook作成時のURLを取得  
-1. 現状は main.py のコードを編集してWebhook送信先URLおよびコンペIDを編集  
-1. 実行  
-
-## ToDo
+<img src="resource/op3.png" width="600px" />  
+  
+### 3. コード設定
+現状は main.py のコードを編集してWebhook送信先URLおよびコンペIDを編集する.  
+<img src="resource/op4.png" width="600px" />
+  
+### 4. 実行  
+```bash
+python main.py
+```
+  
+## TBD
 現行コードではpythonファイルにリテラルで記述しているが,  
 将来的にはconfig.jsonにURLおよびコンペIDを記載する形式に変更を予定している.  
