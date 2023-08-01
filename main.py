@@ -16,7 +16,7 @@ context = ssl.create_default_context()
 context.check_hostname = False
 context.verify_mode = ssl.CERT_NONE
 
-# Discordメッセージ送信先:
+# Discord/Slackのメッセージ送信先:
 URL = 'https://discord.com/api/webhooks/<webhook URL>'
 
 # 監視対象コンペティション: kaggle competitions download -c xxxx (xxxx部分を指定)
@@ -25,6 +25,11 @@ COMPETITION = 'xxxx'
 # メトリック
 # 大きい方がよければ True
 MAXIMIZE = True
+
+# Discordの場合:
+CONTENT = 'content'
+# Slackの場合:
+# CONTENT = 'text'
 
 # デバッグ処理用
 DEBUG = False
@@ -37,7 +42,7 @@ def sender(message: str) -> None:
         'Content-Type': 'application/json',
     }
     req_data = json.dumps({
-        'content' : message
+        CONTENT : message
     })
     _ = requests.post(URL, data=req_data, headers=req_head)
 
@@ -226,6 +231,7 @@ if __name__ == '__main__':
     last_auth = time.time()
     while not os.path.exists('quit'):
         try:
+            # 1時間に1回程度再度 auth を実行しておく
             if time.time() - last_auth >= 3600:
                 api.authenticate()
                 last_auth = time.time()
